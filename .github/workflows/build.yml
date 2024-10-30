@@ -28,13 +28,32 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build application with PyInstaller
-        run: pyinstaller --onedir --console --add-data "model:model" --add-data "utils:utils" --add-data "libs/mediapipe:mediapipe" --add-data "libs/protobuf:protobuf" app.py
+        run: |
+          pyinstaller --onedir --console --add-data "models:models" --add-data "utils:utils" --add-data "libs/mediapipe:mediapipe" --add-data "libs/protobuf:protobuf" app.py
 
-      - name: Archive output
-        uses: actions/upload-artifact@v3
+      - name: Create ZIP of output
+        run: |
+          cd dist
+          zip -r ../built-application-${{ github.run_number }}.zip *
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
         with:
-          name: built-application-${{ github.run_number }}
-          path: dist/
+          tag_name: v${{ github.run_number }} 
+          name: Release ${{ github.run_number }} 
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload ZIP to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          files: built-application-${{ github.run_number }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set versioning
         run: |
