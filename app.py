@@ -10,18 +10,26 @@ from collections import deque
 import cv2 as cv
 import numpy as np
 import mediapipe as mp
+import sys
+import os
+import logging
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
 
+logging.basicConfig(
+    filename='error_log.txt',       
+    level=logging.ERROR,            
+    format='%(asctime)s - %(levelname)s - %(message)s'  
+)
 
 def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--device", type=int, default=0)
-    parser.add_argument("--width", help='cap width', type=int, default=960)
-    parser.add_argument("--height", help='cap height', type=int, default=540)
+    parser.add_argument("--width", help='cap width', type=int, default=1920)
+    parser.add_argument("--height", help='cap height', type=int, default=1080)
 
     parser.add_argument('--use_static_image_mode', action='store_true')
     parser.add_argument("--min_detection_confidence",
@@ -38,7 +46,7 @@ def get_args():
     return args
 
 
-def main():
+def main(base_path):
     # Argument parsing #################################################################
     args = get_args()
 
@@ -57,11 +65,15 @@ def main():
     cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
 
+    # Create a resizable window and set its size to match the video capture resolution
+    cv.namedWindow("Hand Gesture Recognition", cv.WINDOW_NORMAL)
+    cv.resizeWindow("Hand Gesture Recognition", cap_width, cap_height)
+
     # Model load #############################################################
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(
         static_image_mode=use_static_image_mode,
-        max_num_hands=1,
+        max_num_hands=5,
         min_detection_confidence=min_detection_confidence,
         min_tracking_confidence=min_tracking_confidence,
     )
@@ -70,15 +82,18 @@ def main():
 
     point_history_classifier = PointHistoryClassifier()
 
+    keypoint_csv_path = os.path.join(base_path, 'model\\keypoint_classifier\\keypoint_classifier_label.csv')
+    point_history_csv_path = os.path.join(base_path, 'model\\point_history_classifier\\point_history_classifier_label.csv')
+
     # Read labels ###########################################################
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+    with open(keypoint_csv_path,
               encoding='utf-8-sig') as f:
         keypoint_classifier_labels = csv.reader(f)
         keypoint_classifier_labels = [
             row[0] for row in keypoint_classifier_labels
         ]
     with open(
-            'model/point_history_classifier/point_history_classifier_label.csv',
+            point_history_csv_path,
             encoding='utf-8-sig') as f:
         point_history_classifier_labels = csv.reader(f)
         point_history_classifier_labels = [
@@ -177,9 +192,17 @@ def main():
         # Screen reflection #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
 
+        # Check if window is closed
+        if cv.getWindowProperty('Hand Gesture Recognition', cv.WND_PROP_VISIBLE) < 1:
+            break
+
+        # Process Key (ESC: end)
+        key = cv.waitKey(10)
+        if key == 27:  # ESC
+            break
+
     cap.release()
     cv.destroyAllWindows()
-
 
 def select_mode(key, mode):
     number = -1
@@ -282,12 +305,12 @@ def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
     if mode == 1 and (0 <= number <= 9):
-        csv_path = 'model/keypoint_classifier/keypoint.csv'
+        csv_path = os.path.join(base_path, 'model\\keypoint_classifier\\keypoint.csv')
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
     if mode == 2 and (0 <= number <= 9):
-        csv_path = 'model/point_history_classifier/point_history.csv'
+        csv_path = os.path.join(base_path, 'model\\point_history_classifier\\point_history.csv')
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *point_history_list])
@@ -540,4 +563,12 @@ def draw_info(image, fps, mode, number):
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.abspath(".")
+
+        main(base_path)
+    except Exception as e:
+        logging.error("An error occurred", exc_info=True)
