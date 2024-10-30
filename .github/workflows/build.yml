@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest  # Use Windows runner to build .exe files
 
     steps:
       - name: Checkout code
@@ -29,12 +29,12 @@ jobs:
 
       - name: Build application with PyInstaller
         run: |
-          pyinstaller --onedir --console --add-data "model:model" --add-data "utils:utils" --add-data "libs/mediapipe:mediapipe" --add-data "libs/protobuf:protobuf" app.py
+          pyinstaller --onefile --console --add-data "model;model" --add-data "utils;utils" --add-data "libs/mediapipe;mediapipe" --add-data "libs/protobuf;protobuf" app.py
 
       - name: Create ZIP of output
         run: |
           cd dist
-          zip -r ../hand-gesture-v${{ github.run_number }}.zip * 
+          Compress-Archive -Path app.exe -DestinationPath ../hand-gesture-v${{ github.run_number }}.zip 
 
       - name: Create Release
         id: create_release
