@@ -29,13 +29,13 @@ jobs:
 
       - name: Build application with PyInstaller
         run: |
-          pyinstaller --onedir --console --add-data "models:models" --add-data "utils:utils" --add-data "libs/mediapipe:mediapipe" --add-data "libs/protobuf:protobuf" app.py
+          pyinstaller --onedir --console --add-data "model:model" --add-data "utils:utils" --add-data "libs/mediapipe:mediapipe" --add-data "libs/protobuf:protobuf" app.py
 
       - name: Create ZIP of output
         run: |
           cd dist
           zip -r ../hand-gesture-v${{ github.run_number }}.zip * 
-          
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
