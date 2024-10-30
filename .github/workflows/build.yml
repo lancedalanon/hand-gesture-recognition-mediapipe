@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build application with PyInstaller
-        run: pyinstaller --onedir --console --add-data "models:models" --add-data "utils:utils" --add-data "libs/mediapipe:mediapipe" --add-data "libs/protobuf:protobuf" app.py
+        run: pyinstaller --onedir --console --add-data "model:model" --add-data "utils:utils" --add-data "libs/mediapipe:mediapipe" --add-data "libs/protobuf:protobuf" app.py
 
       - name: Archive output
         uses: actions/upload-artifact@v3
